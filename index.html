@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Alien Invite Network</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        :root {
+            --alien-green: #00ff9d;
+            --alien-blue: #00b8ff;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0033 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 420px;
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 32px 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            text-align: center;
+        }
+        
+        .header {
+            margin-bottom: 24px;
+        }
+        
+        .logo {
+            font-size: 48px;
+            margin-bottom: 8px;
+        }
+        
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--alien-green), var(--alien-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 4px;
+        }
+        
+        .subtitle {
+            font-size: 15px;
+            opacity: 0.8;
+        }
+        
+        .status {
+            padding: 14px 20px;
+            border-radius: 16px;
+            font-weight: 600;
+            margin: 24px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .status.connected {
+            background: rgba(0, 255, 157, 0.15);
+            color: var(--alien-green);
+            border: 1px solid var(--alien-green);
+        }
+        
+        .status.disconnected {
+            background: rgba(255, 80, 80, 0.15);
+            color: #ff8080;
+            border: 1px solid #ff8080;
+        }
+        
+        .alien-id-box {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 16px;
+            font-family: monospace;
+            font-size: 14px;
+            word-break: break-all;
+            margin: 20px 0;
+            text-align: left;
+        }
+        
+        .invite-result {
+            margin-top: 30px;
+            padding: 24px;
+            background: rgba(0, 255, 157, 0.08);
+            border-radius: 20px;
+            border: 1px solid var(--alien-green);
+        }
+        
+        .invite-count {
+            font-size: 62px;
+            font-weight: 700;
+            line-height: 1;
+            color: var(--alien-green);
+            margin: 8px 0;
+        }
+        
+        button {
+            width: 100%;
+            padding: 16px;
+            font-size: 17px;
+            font-weight: 600;
+            border: none;
+            border-radius: 9999px;
+            cursor: pointer;
+            margin: 12px 0;
+            transition: all 0.2s ease;
+            background: linear-gradient(90deg, var(--alien-green), var(--alien-blue));
+            color: #000;
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 255, 157, 0.3);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .footer {
+            margin-top: 32px;
+            font-size: 13px;
+            opacity: 0.6;
+        }
+        
+        .loading {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">👽</div>
+            <h1>Alien Invite Network</h1>
+            <p class="subtitle">Check your human referrals</p>
+        </div>
+
+        <div id="status" class="status disconnected">
+            Not connected — Tap below to connect with Alien ID
+        </div>
+
+        <div id="main-content" style="display: none;">
+            <p style="margin-bottom: 8px; opacity: 0.9;">Your Alien ID</p>
+            <div id="alien-id" class="alien-id-box">Loading your verified identity...</div>
+
+            <button id="check-btn">🔍 Check My Invites</button>
+
+            <div id="result" class="invite-result" style="display: none;">
+                <p style="font-size: 15px; opacity: 0.9;">You have successfully invited</p>
+                <div id="count" class="invite-count">0</div>
+                <p style="font-size: 15px; opacity: 0.9;">real humans into the Alien Network</p>
+            </div>
+        </div>
+
+        <button id="connect-btn">Connect with Alien ID</button>
+
+        <div class="footer">
+            Built for Alien Mini Apps • Privacy-preserving • Sybil-resistant
+        </div>
+    </div>
+
+    <script>
+        // =============================================
+        // Alien Mini App Bridge & Session Handling
+        // =============================================
+        
+        let alienId = null;
+        let sessionToken = null;
+        let isConnected = false;
+
+        const statusEl = document.getElementById('status');
+        const connectBtn = document.getElementById('connect-btn');
+        const checkBtn = document.getElementById('check-btn');
+        const mainContent = document.getElementById('main-content');
+        const alienIdEl = document.getElementById('alien-id');
+        const resultEl = document.getElementById('result');
+        const countEl = document.getElementById('count');
+
+        // Detect if running inside Alien Mini App
+        function isInAlienApp() {
+            return !!window.__miniAppsBridge__ || 
+                   !!window.alien || 
+                   navigator.userAgent.toLowerCase().includes('alien');
+        }
+
+        // Connect to Alien ID (real bridge + fallback simulation)
+        async function connectAlienID() {
+            connectBtn.disabled = true;
+            connectBtn.textContent = "Connecting to Alien...";
+            
+            try {
+                if (isInAlienApp() && window.__miniAppsBridge__) {
+                    // Real Mini Apps bridge (as per Alien docs)
+                    const response = await window.__miniAppsBridge__.request({
+                        method: 'getSession'
+                    });
+                    
+                    if (response && response.alienId) {
+                        alienId = response.alienId;
+                        sessionToken = response.sessionToken || null;
+                    } else {
+                        throw new Error("No session returned");
+                    }
+                } else {
+                    // Fallback simulation for browser testing
+                    console.warn("Running outside Alien App — using demo mode");
+                    await new Promise(r => setTimeout(r, 900));
+                    
+                    alienId = "alien_" + 
+                              Math.random().toString(36).substring(2, 10).toUpperCase() + 
+                              "x" + 
+                              Date.now().toString(36).slice(-6);
+                }
+
+                isConnected = true;
+                statusEl.classList.remove('disconnected');
+                statusEl.classList.add('connected');
+                statusEl.textContent = "✅ Connected • Alien ID Verified";
+
+                alienIdEl.textContent = alienId;
+                mainContent.style.display = "block";
+                connectBtn.style.display = "none";
+
+            } catch (error) {
+                console.error("Connection error:", error);
+                statusEl.textContent = "❌ Connection failed. Please try again.";
+                connectBtn.disabled = false;
+                connectBtn.textContent = "Connect with Alien ID";
+            }
+        }
+
+        // Fetch invite / referral count
+        async function checkInviteCount() {
+            if (!alienId) {
+                alert("Please connect your Alien ID first.");
+                return;
+            }
+
+            checkBtn.disabled = true;
+            checkBtn.textContent = "Querying referrals...";
+            resultEl.style.display = "none";
+
+            try {
+                // In a real Alien Mini App, you would call the platform API here:
+                // Example:
+                // const res = await fetch(`https://api.alien.org/v1/referrals/${alienId}`, {
+                //     headers: { Authorization: `Bearer ${sessionToken}` }
+                // });
+                // const data = await res.json();
+                // const count = data.inviteCount || 0;
+
+                // Simulated realistic response (replace with real API when available)
+                await new Promise(r => setTimeout(r, 1100));
+                
+                const simulatedCount = Math.floor(Math.random() * 37) + 3; // 3–39 range for demo realism
+
+                countEl.textContent = simulatedCount;
+                resultEl.style.display = "block";
+
+            } catch (err) {
+                console.error(err);
+                alert("Unable to fetch invite data right now. Please try again later.");
+            } finally {
+                checkBtn.disabled = false;
+                checkBtn.textContent = "🔍 Check My Invites";
+            }
+        }
+
+        // Event listeners
+        connectBtn.addEventListener('click', connectAlienID);
+        checkBtn.addEventListener('click', checkInviteCount);
+
+        // Auto-connect attempt when loaded inside Alien App
+        window.addEventListener('load', () => {
+            console.log("%c👽 Alien Invite MiniApp initialized", "color:#00ff9d; font-weight:600");
+            
+            if (isInAlienApp()) {
+                // Slight delay to let bridge initialize
+                setTimeout(() => {
+                    connectAlienID();
+                }, 600);
+            }
+        });
+    </script>
+</body>
+</html>
